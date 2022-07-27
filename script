@@ -1,0 +1,96 @@
+cls
+# Import du module AD
+Import-Module ActiveDirectory
+$compteur = Read-host "Combien de compte voulez vous créer"
+
+
+
+# Récupération du DN du domaine courant
+$dom = (Get-AdDomain).DistinguishedName
+ 
+#Affiche le niveau du domaine ( ex: dc=gouv,dc=fr ===> 2 )
+$level_dom = $dom.split(",").count
+ 
+function Scan-OU
+{
+# parametre obligatoire $path ( DN de l'OU a scanner)
+	param
+	(
+	[Parameter(Mandatory=$true)][string]$path
+	)
+ 
+ $blanc = "       "
+ 
+	$ou = Get-ADOrganizationalUnit -filter * -SearchBase $path -SearchScope onelevel
+ 
+	Foreach ($item in $ou)
+	{
+		if ( $item.name -ne $null)
+		{
+        $level = ($item.DistinguishedName.Split(",").count - $level_dom)
+        $espace = $blanc * $level
+ 
+			if ($level -eq 1)
+			{
+			write-host " $($item.name)"
+            Write-host
+			}
+			else
+			{
+            #write-host "||".PadLeft($level * 5, " ")
+			write-host "$espace ===> $($item.name)"
+            Write-host
+			}
+ 
+		Scan-OU -path $item.DistinguishedName
+        } 
+    }
+}
+ 
+#DN de l'OU à scanner
+$path = Read-Host " Entrez l'OU correspondante ex : OU=name,DC=domain,DC=fr"
+ 
+#appel de la fonction
+$texte="toutes les OU disponible dans le domaine spécifié"
+Write-Host $texte
+scan-ou $path
+for($i=0;$i -lt $compteur; $i++){ 
+
+        $UtilisateurPrenom = Read-Host " Indiquer Le prénom du nouveau utilisateur"
+        $UtilisateurNom = Read-Host " Indiquer Le nom du nouveau utilisateur"
+        $UtilisateurLogin = ($UtilisateurPrenom).Substring(0,1) + "." + $UtilisateurNom
+        $UtilisateurEmail = "$UtilisateurLogin@eurokera.com"
+        $UtilisateurMotDePasse = Read-Host -AsSecureString "Mot de passe doit respecté les modalité de sécurité"
+        $UtilisateurFonction = $Utilisateur.Fonction
+        $path2=Read-Host " Entrez l'OU qui est affiché selon votre choix, attention a bien rentré les information"
+        $Pathfinal=$path2+","+$path
+        $Utilisateurfonction = Read-Host("Entrez une fonction pour votre compte")
+
+#Vérifier si l'utilisateur existe :
+if (Get-ADUser -Filter {SamAccountName -eq $UtilisateurLogin})
+{
+    Write-Warning "L'identifiant $UtilisateurLogin existe déjà dans l'annuaire"
+}
+
+else
+{
+$NewUsersPArams = @{
+            Name = "$UtilisateurNom $UtilisateurPrenom" 
+            DisplayName = "$UtilisateurNom $UtilisateurPrenom"          
+            GivenName = "$UtilisateurPrenom" 
+            Surname = "$UtilisateurNom" 
+            AccountPassword = (ConvertTo-SecureString "$UtilisateurMotDePasse" -AsPlainText -Force) 
+            SamAccountName= "$UtilisateurLogin"
+            UserPrincipalName = "$UtilisateurLogin@domain.local"
+            Path = $Pathfinal
+            CannotChangePassword = $true 
+            Enabled = $true 
+            Title = "$Utilisateurfonction" 
+           }
+}
+
+New-ADUser $NewUsersPArams
+
+Write-Output "Création de : $UtilisateurLogin ($UtilisateurNom $UtilisateurPrenom)"
+
+}
