@@ -61,10 +61,29 @@ for($i=0;$i -lt $compteur; $i++){
         $UtilisateurLogin = ($UtilisateurPrenom).Substring(0,1) + "." + $UtilisateurNom
         $UtilisateurEmail = "$UtilisateurLogin@eurokera.com"
         $UtilisateurMotDePasse = Read-Host -AsSecureString "Mot de passe doit respecté les modalité de sécurité"
-        $UtilisateurFonction = $Utilisateur.Fonction
+        $Paasword = ConvertTo-SecureString $UtilisateurMotDePasse -AsPlainText -Force
+        $UtilisateurMotDePasse = $Paasword
         $path2=Read-Host " Entrez l'OU qui est affiché selon votre choix, attention a bien rentré les information"
         $Pathfinal=$path2+","+$path
-        $Utilisateurfonction = Read-Host("Entrez une fonction pour votre compte")
+        $Utilisateurfonction = Read-Host("Entrez le métier du salarié détenant ce compte")
+        $UtilisateurAdresse = Read-Host("Entrez votre addresse")
+        if ($compteur -gt 1)
+
+        {
+            $ret = Read-Host("voulez vous utiliser la meme addresse ? y/n")
+            $yes= "y"
+            $no= "n"
+            if($ret -eq $yes)
+            {
+              $UtilisateurAdresse
+            }
+            elseif($ret -eq $no)
+            {
+            $NewUtilisateurAdress = Read-Host("entrer une nouvelle addresse")
+            $UtilisateurAdresse = $NewUtilisateurAdress
+            }
+        }
+
 
 #Vérifier si l'utilisateur existe :
 if (Get-ADUser -Filter {SamAccountName -eq $UtilisateurLogin})
@@ -74,22 +93,23 @@ if (Get-ADUser -Filter {SamAccountName -eq $UtilisateurLogin})
 
 else
 {
-$NewUsersPArams = @{
-            Name = "$UtilisateurNom $UtilisateurPrenom" 
-            DisplayName = "$UtilisateurNom $UtilisateurPrenom"          
-            GivenName = "$UtilisateurPrenom" 
-            Surname = "$UtilisateurNom" 
-            AccountPassword = (ConvertTo-SecureString "$UtilisateurMotDePasse" -AsPlainText -Force) 
-            SamAccountName= "$UtilisateurLogin"
-            UserPrincipalName = "$UtilisateurLogin@domain.local"
-            Path = $Pathfinal
+  $NewUsersPArams = @{
+            Path = $Pathfinal 
+            Name = "$UtilisateurNom $UtilisateurPrenom"
+            DisplayName = "$UtilisateurNom $UtilisateurPrenom"      
+            GivenName = "$UtilisateurPrenom " 
+            Surname = $UtilisateurNom 
+            AccountPassword = $UtilisateurMotDePasse  
+            SamAccountName= $UtilisateurLogin
+            UserPrincipalName = "$UtilisateurLogin@domain.com"
             CannotChangePassword = $true 
             Enabled = $true 
-            Title = "$Utilisateurfonction" 
+            Title = $Utilisateurfonction
+            StreetAddress = $UtilisateurAdresse
            }
 }
 
-New-ADUser $NewUsersPArams
+New-ADUser @NewUsersPArams
 
 Write-Output "Création de : $UtilisateurLogin ($UtilisateurNom $UtilisateurPrenom)"
 
